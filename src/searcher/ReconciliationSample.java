@@ -41,9 +41,7 @@ public class ReconciliationSample {
 	private static String[] getListFromCsv(String field) {
 		if (field == null || !(field.startsWith("[") && field.endsWith("]")))
 			return null;
-		System.out.println(field);
 		field = field.substring(1, field.length()-2);
-		System.out.println(field);
 		return field.split("[|]");
 	}
 	
@@ -63,11 +61,12 @@ public class ReconciliationSample {
 		month2number.put("dec", "12");
 		String birthInfo = getListFromCsv(field)[0];
 		String biWithoutSpaces = birthInfo.replaceAll(" ", "").toLowerCase();
-		System.out.println(biWithoutSpaces);
 		String trimmed = biWithoutSpaces.substring("born".length());
 		String textMonth = trimmed.substring(0,3);
 		trimmed = trimmed.substring(textMonth.length());
 		String day = trimmed.substring(0, trimmed.indexOf(','));
+		if(day.length() <2 )
+			day = "0"+day;
 		trimmed = trimmed.substring(trimmed.indexOf(',')+1);
 		String year = trimmed.substring(0,4);
 		String month = month2number.get(textMonth);
