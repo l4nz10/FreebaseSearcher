@@ -7,6 +7,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+
 public class ReconciliationSample {
 
 	public static void main(String[] args) throws IOException {
@@ -16,68 +19,101 @@ public class ReconciliationSample {
 		ReconciliationHandler rh = new ReconciliationHandler();
 		TopicHandler th = new TopicHandler();
 		CsvWriterBasketball cwb = new CsvWriterBasketball("basketball.csv");
+		
+//		sendOnce(rh, th);
 
 		while (extractor.nextLine()) {
 			String kind = "/basketball/basketball_player";
 			String playerName = extractor.get("name");
-			Map<String, Collection<String>> reconciliationParams = new HashMap<String, Collection<String>>();
-			String team = extractor.get("team");
-			List<String> values = new LinkedList<String>();
-			if (team != null && !team.isEmpty())
-				values.add("/sports/pro_athlete/teams/team:" + team);
-				String freebaseDate = textDate2FreebaseDate(extractor.get("info"));
-				String placeOfBirth = getPlaceofBirth(extractor.get("info"));
-				values.add("/people/person/date_of_birth:" + freebaseDate);
-				values.add("/people/person/place_of_birth:" + placeOfBirth);
-				reconciliationParams.put("prop", values);
-			if (rh.sendRequest(kind, playerName, reconciliationParams)) {
+			Multimap<String, String> params = buildParams(extractor);
+			if (rh.sendRequest(kind, playerName, params)) {
 				if (th.sendRequest(rh.getMID())) {
-					cwb.writeOnCsv(th.getTopic());
+					cwb.writeOnCsv(th.getTopic(),
+								   playerName,
+								   getDateOfBirth(extractor.get("info")),
+								   getPlaceOfBirth(extractor.get("info")));
 				}
 			}			
-		}
+		}		
+	}
+	
+	private static Multimap<String, String> buildParams(CsvExtractor extractor) {
+		Multimap<String, String> params = HashMultimap.create();
+		String info = extractor.get("info");
+		String dateOfBirth = getDateOfBirth(info);
+		if (dateOfBirth != null)
+			params.put("prop", "/people/person/date_of_birth:" + dateOfBirth);
+		String placeOfBirth = getPlaceOfBirth(info);
+		if (placeOfBirth != null)
+			params.put("prop", "/people/person/place_of_birth:" + placeOfBirth);
+		return params.isEmpty() ? null : params; 
+	}
+	
+	private static void sendOnce(ReconciliationHandler rh, TopicHandler th) {
+		String name = "Sergey Karasev";
+		String date = "1993-10-26";
+		String place = "russia";
+		String kind = "/basketball/basketball_player";
+		Map<String, Collection<String>> reconciliationParams = new HashMap<String, Collection<String>>();
+		List<String> values = new LinkedList<String>();
+		values.add("/people/person/date_of_birth:" + date);
+		values.add("/people/person/place_of_birth:" + place);
+		reconciliationParams.put("prop", values);
+		rh.sendRequest(kind, name);
 	}
 	
 	private static String[] getListFromCsv(String field) {
 		if (field == null || !(field.startsWith("[") && field.endsWith("]")))
 			return null;
 		field = field.substring(1, field.length()-2);
-		return field.split("[|]");
+		return field.split("##");
 	}
 	
-	private static String textDate2FreebaseDate(String field) {
-		Map<String, String> month2number = new HashMap<String, String>();
-		month2number.put("jan", "01");
-		month2number.put("feb", "02");
-		month2number.put("mar", "03");
-		month2number.put("apr", "04");
-		month2number.put("may", "05");
-		month2number.put("jun", "06");
-		month2number.put("jul", "07");
-		month2number.put("aug", "08");
-		month2number.put("sep", "09");
-		month2number.put("oct", "10");
-		month2number.put("nov", "11");
-		month2number.put("dec", "12");
-		String birthInfo = getListFromCsv(field)[0];
-		String biWithoutSpaces = birthInfo.replaceAll(" ", "").toLowerCase();
-		String trimmed = biWithoutSpaces.substring("born".length());
-		String textMonth = trimmed.substring(0,3);
-		trimmed = trimmed.substring(textMonth.length());
+	private static String getDateOfBirth(String field) {
+		String[] infoList = getListFromCsv(field);
+		if (infoList == null || infoList.length == 0)
+			return null;
+		String birthInfo = infoList[0].toLowerCase();
+		String birthInfoNoSpace = birthInfo.replaceAll(" ", "");
+		String trimmed = birthInfoNoSpace.substring("born".length());
+		String monthName = trimmed.substring(0,3);
+		trimmed = trimmed.substring(monthName.length());
 		String day = trimmed.substring(0, trimmed.indexOf(','));
-		if(day.length() <2 )
-			day = "0"+day;
+		day = day.length() == 1 ? "0" + day : day;
 		trimmed = trimmed.substring(trimmed.indexOf(',')+1);
 		String year = trimmed.substring(0,4);
-		String month = month2number.get(textMonth);
+		Map<String, String> monthName2number = getMonthName2number();
+		String month = monthName2number.get(monthName);
 		return year + "-" + month + "-" + day;
 	}
 	
-	private static String getPlaceofBirth(String field) {
-		String birthInfo = getListFromCsv(field)[0];
-		String biWithoutSpaces = birthInfo.replaceAll(" ", "");
-		int startIn = biWithoutSpaces.indexOf("in");
-		String trimmed = biWithoutSpaces.substring(startIn + 2);
+	private static Map<String, String> getMonthName2number() {
+		Map<String, String> monthName2number = new HashMap<String, String>();
+		monthName2number.put("jan", "01");
+		monthName2number.put("feb", "02");
+		monthName2number.put("mar", "03");
+		monthName2number.put("apr", "04");
+		monthName2number.put("may", "05");
+		monthName2number.put("jun", "06");
+		monthName2number.put("jul", "07");
+		monthName2number.put("aug", "08");
+		monthName2number.put("sep", "09");
+		monthName2number.put("oct", "10");
+		monthName2number.put("nov", "11");
+		monthName2number.put("dec", "12");
+		return monthName2number;
+	}
+	
+	private static String getPlaceOfBirth(String field) {
+		String[] infoList= getListFromCsv(field);
+		if (infoList == null || infoList.length == 0)
+			return null;
+		String birthInfo = infoList[0].toLowerCase();
+		String birthInfoNoSpace = birthInfo.replaceAll(" ", "");
+		int startIndex = birthInfoNoSpace.indexOf("in");
+		if (startIndex == -1)
+			return null;
+		String trimmed = birthInfoNoSpace.substring(startIndex + 2);
 		trimmed = trimmed.substring(0, trimmed.indexOf('('));
 		if (trimmed.contains(","))
 			return trimmed.substring(0, trimmed.indexOf(','));

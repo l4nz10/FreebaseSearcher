@@ -32,7 +32,7 @@ public class TopicHandler {
 	}
 	
 	public boolean sendRequest(String topicID, Map<String, String> params) {
-		if (topicID == null || topicID.isEmpty())
+		if (invalid(topicID))
 			return false;
 		try {
 			properties.load(new FileInputStream("config.properties"));
@@ -41,7 +41,7 @@ public class TopicHandler {
 			JSONParser parser = new JSONParser();
 			GenericUrl url = new GenericUrl("https://www.googleapis.com/freebase/v1/topic" + topicID);
 			url.put("key", properties.get("API_KEY"));
-			if (params != null)
+			if (params != null && !params.isEmpty())
 				for (String key : params.keySet())
 					url.put(key, params.get(key));
 			HttpRequest request = requestFactory.buildGetRequest(url);
@@ -68,6 +68,10 @@ public class TopicHandler {
 			writer.close();
 		}
 	}	
+	
+	private boolean invalid(String s) {
+		return s == null || s.isEmpty();
+	}
 	
 	public void setTopic(JSONObject topic) {
 		this.topic = topic;
