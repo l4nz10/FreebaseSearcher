@@ -13,13 +13,9 @@ public class CsvExtractor {
 	private Map<String, Integer> name2index;
 	private String[] line = null;
 	
-	public CsvExtractor(String fileName) {
-		try {
-			reader = new CSVReader(new FileReader(fileName), ';');
-			initializeFields(reader.readNext());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	public CsvExtractor(String fileName) throws IOException {
+		reader = new CSVReader(new FileReader(fileName), ';');
+		initializeFields(reader.readNext());
 	}
 	
 	private void initializeFields(String[] fieldNames) {
@@ -29,19 +25,24 @@ public class CsvExtractor {
 		}
 	}
 	
-	public boolean nextLine() {
-		try {
-			line = reader.readNext();
-			return true;
-		} catch (IOException e) { 
-			e.printStackTrace();
-			return false;
-		}
+	public boolean nextLine() throws IOException {
+		setLine(reader.readNext());
+		return getLine() != null ? true : false;
+	}
+	
+	public String[] getLine() {
+		return this.line;
+	}
+	
+	public void setLine(String[] line) {
+		this.line = line;
+	}
+	
+	public void close() throws IOException {
+		reader.close();
 	}
 	
 	public String get(String fieldName) {
-		if (line == null)
-			return null;
-		return line[name2index.get(fieldName.toLowerCase())];
+		return getLine() == null ? null : line[name2index.get(fieldName.toLowerCase())];
 	}
 }

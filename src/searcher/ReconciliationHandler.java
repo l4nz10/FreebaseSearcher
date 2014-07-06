@@ -3,6 +3,7 @@ package searcher;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Properties;
 
 import org.json.simple.JSONArray;
@@ -66,12 +67,12 @@ public class ReconciliationHandler {
 			JSONParser parser = new JSONParser();
 			String prefix = "https://www.googleapis.com/freebase/v1sandbox/reconcile";
 			GenericUrl url;
-			if (params != null && !params.isEmpty()) { 
+			if (invalid(params)) { 
+				url = new GenericUrl(prefix);
+			} else {
 				MapJoiner joiner = Joiner.on('&').withKeyValueSeparator("=");
 				String stringedParams = joiner.join(params.entries());
-				url = new GenericUrl(prefix + "?" + stringedParams);
-			} else {
-				url = new GenericUrl(prefix);
+				url = new GenericUrl(prefix + "?" + stringedParams);				
 			}
 			url.put("key", properties.get("API_KEY"));
 			url.put("kind", kind);
@@ -103,8 +104,20 @@ public class ReconciliationHandler {
 		}
 	}
 	
-	private boolean invalid(String s) {
-		return s == null || s.isEmpty();
+	@SuppressWarnings("rawtypes")
+	private boolean invalid(Object o) {
+		if (o == null) {
+			return true;
+		}
+		if (o instanceof String) {
+			String s = (String) o;
+			return s.isEmpty();
+		}
+		if (o instanceof Collection) {
+			Collection c = (Collection) o;
+			return c.isEmpty();
+		}
+		return false;
 	}
 
 	public JSONObject getResponse() {

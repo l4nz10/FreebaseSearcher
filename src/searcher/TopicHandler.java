@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 
@@ -41,7 +42,7 @@ public class TopicHandler {
 			JSONParser parser = new JSONParser();
 			GenericUrl url = new GenericUrl("https://www.googleapis.com/freebase/v1/topic" + topicID);
 			url.put("key", properties.get("API_KEY"));
-			if (params != null && !params.isEmpty())
+			if (!invalid(params))
 				for (String key : params.keySet())
 					url.put(key, params.get(key));
 			HttpRequest request = requestFactory.buildGetRequest(url);
@@ -69,8 +70,20 @@ public class TopicHandler {
 		}
 	}	
 	
-	private boolean invalid(String s) {
-		return s == null || s.isEmpty();
+	@SuppressWarnings("rawtypes")
+	private boolean invalid(Object o) {
+		if (o == null) {
+			return true;
+		}
+		if (o instanceof String) {
+			String s = (String) o;
+			return s.isEmpty();
+		}
+		if (o instanceof Collection) {
+			Collection c = (Collection) o;
+			return c.isEmpty();
+		}
+		return false;
 	}
 	
 	public void setTopic(JSONObject topic) {
