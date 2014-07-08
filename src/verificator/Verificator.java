@@ -3,6 +3,8 @@ package verificator;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.Normalizer;
+import java.util.regex.Pattern;
 
 import au.com.bytecode.opencsv.CSVWriter;
 import searcher.CsvExtractor;
@@ -17,12 +19,18 @@ public class Verificator {
 
 		CsvExtractor dataExtractor = new CsvExtractor("data.csv");
 		CsvExtractor freeBaseExtractor = new CsvExtractor("basketball_complete.csv");
+		
+		File file = new File("stats.csv");
+		if (file.exists())
+			file.delete();
+		
+		
 
 		freeBaseExtractor.nextLine();
 		while (dataExtractor.nextLine()) {
 			analized ++;
-			name1 = freeBaseExtractor.get("name").replaceAll("ì", "i");
-			name2 = freeBaseExtractor.get("(o)name");
+			name1 = normalize(freeBaseExtractor.get("name"));
+			name2 = normalize(freeBaseExtractor.get("(o)name"));
 			date1 = freeBaseExtractor.get("date_of_birth");
 			date2 = freeBaseExtractor.get("(o)date_of_birth");
 			place1 = freeBaseExtractor.get("place_of_birth").toLowerCase().replaceAll(" ", "");
@@ -34,7 +42,7 @@ public class Verificator {
 			System.out.println("DATE: "+date1+" - "+date2);
 			System.out.println("PLACE: "+place1+" - "+place2);
 			System.out.println("...}");
-			if(name_by_data.equals(name2)){
+			if(normalize(name_by_data).equals(name2)){
 				if(name1.equals(name2) && date1.equals(date2)){
 					if(place1.equals(place2)){
 						correct++;
@@ -42,7 +50,7 @@ public class Verificator {
 						freeBaseExtractor.nextLine();
 					}else{
 						semicorrect++;
-						writeOnCsv(name_by_data,"SEMICORRECT",place2,place1);
+						writeOnCsv(name_by_data,"UNCERTAIN",place2,place1);
 						freeBaseExtractor.nextLine();
 					}
 				}else{
@@ -63,7 +71,7 @@ public class Verificator {
 		System.out.println("NOT FOUND: "+notFounded);
 		System.out.println("CORRECT: "+correct);
 		System.out.println("UNCORRECT: "+uncorrect);
-		System.out.println("SEMICORRECT: "+semicorrect);
+		System.out.println("UNCERTAIN: "+semicorrect);
 
 	}
 	
@@ -91,7 +99,7 @@ public class Verificator {
 	private static void writeStats(long analized, long notFounded, long correct, long uncorrect, long semicorrect) throws IOException{
 		FileWriter writer = new FileWriter("stats.txt");
 		try {
-			writer.write("ANALAZIED: "+analized+"\n");
+			writer.write("ANALIZED: "+analized+"\n");
 			writer.write("NOT FOUND: "+notFounded+"\n");
 			writer.write("CORRECT: "+correct+"\n");
 			writer.write("UNCORRECT: "+uncorrect+"\n");
@@ -102,6 +110,15 @@ public class Verificator {
 			writer.flush();
 			writer.close();
 		}
+	}
+	
+	private static String normalize(String s) {
+		Pattern stressmarks = Pattern.compile("[^\\p{ASCII}]");
+		Pattern punct_spaces = Pattern.compile("[\\p{Punct} \\s]");
+		String lowerCased = s.toLowerCase();
+		String noPunctuation = punct_spaces.matcher(lowerCased).replaceAll("");
+		String convertedString = Normalizer.normalize(noPunctuation, Normalizer.Form.NFD);
+		return stressmarks.matcher(convertedString).replaceAll("");
 	}
 
 }
