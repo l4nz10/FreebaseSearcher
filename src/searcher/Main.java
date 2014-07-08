@@ -1,10 +1,7 @@
 package searcher;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.HashMultimap;
@@ -14,11 +11,11 @@ public class Main {
 
 	public static void main(String[] args) throws IOException {
 		
-		CsvExtractor extractor = new CsvExtractor("data10.csv");
+		CsvExtractor extractor = new CsvExtractor("data.csv");
 		
 		ReconciliationHandler rh = new ReconciliationHandler();
 		TopicHandler th = new TopicHandler();
-		CsvWriterBasketball cwb = new CsvWriterBasketball("basketball.csv");
+		CsvWriterBasketball cwb = new CsvWriterBasketball("basketball_complete.csv");
 		
 		
 //		sendOnce(extractor, rh, th, cwb);
@@ -118,7 +115,11 @@ public class Main {
 		if (startIndex == -1)
 			return null;
 		String trimmed = birthInfoNoSpace.substring(startIndex + 2);
-		trimmed = trimmed.substring(0, trimmed.indexOf('('));
+		try{
+			trimmed = trimmed.substring(0, trimmed.indexOf('('));
+		}catch(StringIndexOutOfBoundsException e){
+			System.err.println("STRING: "+trimmed);
+		}
 		if (trimmed.contains(","))
 			return trimmed.substring(0, trimmed.indexOf(','));
 		return trimmed;

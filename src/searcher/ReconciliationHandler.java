@@ -65,7 +65,7 @@ public class ReconciliationHandler {
 			HttpTransport httpTransport = new NetHttpTransport();
 			HttpRequestFactory requestFactory = httpTransport.createRequestFactory();
 			JSONParser parser = new JSONParser();
-			String prefix = "https://www.googleapis.com/freebase/v1sandbox/reconcile";
+			String prefix = "https://www.googleapis.com/freebase/v1/reconcile";
 			GenericUrl url;
 			if (invalid(params)) { 
 				url = new GenericUrl(prefix);
