@@ -52,6 +52,10 @@ public abstract class FreebaseHandler {
 			String s = (String) o;
 			return s.isEmpty();
 		}
+		if (o instanceof Integer) {
+			Integer i = (Integer) o;
+			return i <= 0;
+		}
 		if (o instanceof Collection) {
 			Collection c = (Collection) o;
 			return c.isEmpty();
