@@ -46,7 +46,6 @@ public class SearchHandler extends FreebaseHandler {
 			url.put("limit", invalid(limit) ? 10 : limit);
 			url.put("indent", "true");
 			url.put("key", properties.get("API_KEY"));
-			System.out.println("SEARCH_URL: " + url);
 			HttpRequest request = requestFactory.buildGetRequest(url);
 			HttpResponse httpResponse = request.execute();
 			setResponse((JSONObject) parser.parse(httpResponse.parseAsString()));

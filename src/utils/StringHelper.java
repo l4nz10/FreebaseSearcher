@@ -9,4 +9,8 @@ public class StringHelper {
 	public static String removeSpaces(String s) {
 		return s.replaceAll(" ", "");
 	}
+	
+	public static String removeQuotes(String s) {
+		return s.replaceAll("\"", "");
+	}
 }

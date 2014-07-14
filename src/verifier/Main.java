@@ -18,11 +18,13 @@ public class Main {
 		params.put("uniqueness_failure", "soft");
 		
 		TopicHandler th = new TopicHandler();
-		th.sendRequest("/m/02nd_");
-		th.saveResponseToFile("empire_state_building.json");
+		th.sendRequest("/m/04bz52");
+		th.saveResponseToFile("wonderwall.json");
 
 		FreebaseVerifier fv = new FreebaseVerifier();
-		Result result = fv.subject("The lord of the rings").withMetaschema(Metaschemas.CONTRIBUTOR, "peter jackson").is("film");
+		Result result = fv.subject("wonderwall")
+						  .withMetaschema(Metaschemas.CREATED_BY, "Oasis")
+						  .is("Composition");
 		System.out.println(result);
 	}
 

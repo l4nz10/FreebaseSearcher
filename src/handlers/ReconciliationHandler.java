@@ -65,7 +65,6 @@ public class ReconciliationHandler extends FreebaseHandler {
 			url.put("key", properties.get("API_KEY"));
 			url.put("kind", kind);
 			url.put("name", name);
-			System.out.println(url);
 			HttpRequest request = requestFactory.buildGetRequest(url);
 			HttpResponse httpResponse = request.execute();
 			setResponse((JSONObject) parser.parse(httpResponse.parseAsString()));

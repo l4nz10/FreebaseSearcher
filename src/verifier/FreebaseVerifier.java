@@ -20,10 +20,11 @@ import com.google.common.base.Joiner.MapJoiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
 
 public class FreebaseVerifier implements FreebaseVerifierInterface {
 	
-	private final int LIMIT = 5;
+	private final int LIMIT = 15;
 	
 	private String subject;
 	private Multimap<String, String> properties;
@@ -43,8 +44,16 @@ public class FreebaseVerifier implements FreebaseVerifierInterface {
 		properties = HashMultimap.create();		
 	}
 	
+	public void resetProperties() {
+		properties.clear();
+	}
+	
 	private void initializeMetaschemas() {
 		metaschemas = HashMultimap.create();		
+	}
+	
+	public void resetMetaschemas() {
+		metaschemas.clear();
 	}
 	
 	public FreebaseVerifier subject(String subject) {
@@ -58,7 +67,8 @@ public class FreebaseVerifier implements FreebaseVerifierInterface {
 	}
 	
 	public FreebaseVerifier withMetaschema(String metaschema, String value) {
-		String val = value.contains(" ") ? "\"" + value + "\"" : value;
+		String val = StringHelper.removeQuotes(value);
+		val = val.contains(" ") ? "\"" + val + "\"" : val;
 		metaschemas.put(metaschema, val);
 		return this;
 	}
@@ -76,10 +86,8 @@ public class FreebaseVerifier implements FreebaseVerifierInterface {
 			TopicHandler th = new TopicHandler();
 			for (Object result : results) {
 				String name = JsonPath.read(result, "$.name");
-				System.out.println("Result name: " + name);
 				if (name.toLowerCase().equals(getSubject().toLowerCase())) {
 					String mid = JsonPath.read(result, "$.mid");
-					System.out.println("Machine ID: " + mid);
 					if (th.sendRequest(mid)) {
 						JSONObject topic = th.getResponse();
 						double propertiesScore = 1.0;
@@ -87,16 +95,20 @@ public class FreebaseVerifier implements FreebaseVerifierInterface {
 							JSONObject properties = (JSONObject) topic.get("property");
 							propertiesScore = checkProperties(properties);
 						}
-						List<String> typesText = JsonPath.read(topic, "$.property./type/object/type.values[*].text");
-						for (String text : typesText) {
-							if (text.toLowerCase().equals(statement.toLowerCase())) {
-								if (propertiesScore > 0.0) {
-									double score = propertiesScore * (double) JsonPath.read(result, "$.score");
-									return ResultBuilder.buildOKResult(score, propertiesScore);
-								} else {
-									return ResultBuilder.buildBadResult();
+						try {
+							List<String> typesText = JsonPath.read(topic, "$.property./type/object/type.values[*].text");
+							for (String text : typesText) {
+								if (text.toLowerCase().equals(statement.toLowerCase())) {
+									if (propertiesScore > 0.0) {
+										double score = propertiesScore * (double) JsonPath.read(result, "$.score");
+										return ResultBuilder.buildOKResult(score, propertiesScore);
+									} else {
+										return ResultBuilder.buildBadResult();
+									}
 								}
 							}
+						} catch (PathNotFoundException e) {
+							System.err.println("Property '/type/object/type' not present.");
 						}
 					}
 				}
@@ -123,15 +135,17 @@ public class FreebaseVerifier implements FreebaseVerifierInterface {
 		for (Entry<String, String> propEntry : getProperties().entries()) {
 			for (Entry<String, Object> freebaseEntry : freebaseEntries) {
 				String candidateProperty = StringHelper.space2underscore(propEntry.getKey());
-				if (freebaseEntry.getKey().endsWith(candidateProperty)) {
+				if (freebaseEntry.getKey().contains(candidateProperty)) {
 					List<String> texts = JsonPath.read(freebaseEntry.getValue(), "$..text");
 					for (String text : texts) {
 						String text1 = StringHelper.removeSpaces(text).toLowerCase();
 						String text2 = StringHelper.removeSpaces(propEntry.getValue()).toLowerCase();
 						if (text1.equals(text2)) {
 							correctProperties++;
+							break;
 						}
 					}
+					break;
 				}
 			}
 		}
@@ -152,16 +166,18 @@ public class FreebaseVerifier implements FreebaseVerifierInterface {
 		return properties;
 	}
 
-	public void setProperties(Multimap<String, String> params) {
+	public FreebaseVerifier setProperties(Multimap<String, String> params) {
 		this.properties = params;
+		return this;
 	}
 	
 	public Multimap<String, String> getMetaschemas() {
 		return metaschemas;
 	}
 
-	public void setMetaschemas(Multimap<String, String> metaschemas) {
+	public FreebaseVerifier setMetaschemas(Multimap<String, String> metaschemas) {
 		this.metaschemas = metaschemas;
+		return this;
 	}
 	
 	private boolean invalid(String s) {
